@@ -107,6 +107,13 @@ docker build -t liosam-humble-jammy .
 
 Once you have the image, you can start a container by using one of the following methods:
 
+GUI tools such as `rviz2` need access to the host's X server. Before starting a
+container, allow local connections to it once per login session:
+
+```
+xhost +local:root
+```
+
 1. `docker run`
 
 ```
@@ -116,10 +123,17 @@ docker run --init -it -d \
   -v /etc/timezone:/etc/timezone:ro \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -e DISPLAY=$DISPLAY \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
   --runtime=nvidia --gpus all \
   liosam-humble-jammy \
   bash
 ```
+
+> **Note:** `NVIDIA_DRIVER_CAPABILITIES=all` is required for `rviz2`. The
+> NVIDIA runtime only exposes `compute,utility` by default, which omits the
+> OpenGL/GLX libraries, causing `rviz2` to abort on start (exit code -6). The
+> `docker compose` setup below already sets this.
 
 2. `docker compose`
 
