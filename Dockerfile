@@ -25,10 +25,36 @@ SHELL ["/bin/bash", "-c"]
 
 RUN mkdir -p ~/ros2_ws/src \
     && cd ~/ros2_ws/src \
-    && git clone --branch ros2 https://github.com/TixiaoShan/LIO-SAM.git \
+    && git clone --branch ros2 https://github.com/UMich-RobotExploration/LIO-SAM-Ros2.git \
     && cd .. \
     && source /opt/ros/humble/setup.bash \
     && colcon build
+
+# UDP-only FastDDS profile so the container can exchange data with a ROS 2
+# bag/sensor running on the host (shared memory does not cross the container
+# IPC namespace). Path matches FASTRTPS_DEFAULT_PROFILES_FILE in docker-compose.yaml.
+RUN mkdir -p /usr/local/share/middleware_profiles \
+    && printf '%s\n' \
+    '<?xml version="1.0" encoding="UTF-8" ?>' \
+    '<dds>' \
+    '  <profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">' \
+    '    <transport_descriptors>' \
+    '      <transport_descriptor>' \
+    '        <transport_id>CustomUdpTransport</transport_id>' \
+    '        <type>UDPv4</type>' \
+    '      </transport_descriptor>' \
+    '    </transport_descriptors>' \
+    '    <participant profile_name="participant_profile" is_default_profile="true">' \
+    '      <rtps>' \
+    '        <userTransports>' \
+    '          <transport_id>CustomUdpTransport</transport_id>' \
+    '        </userTransports>' \
+    '        <useBuiltinTransports>false</useBuiltinTransports>' \
+    '      </rtps>' \
+    '    </participant>' \
+    '  </profiles>' \
+    '</dds>' \
+    > /usr/local/share/middleware_profiles/rtps_udp_profile.xml
 
 RUN echo "source /opt/ros/humble/setup.bash" >> /root/.bashrc \
     && echo "source /root/ros2_ws/install/setup.bash" >> /root/.bashrc
